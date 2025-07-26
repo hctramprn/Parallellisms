@@ -35,6 +35,18 @@
         .not-last\:mb-4:not(:last-child) {
             margin-bottom: 1rem;
         }
+        /* Styles for JS-controlled sticky behavior */
+        .is-sticky {
+            position: fixed;
+            top: 64px; /* Height of the header */
+            left: 0;
+            right: 0;
+            width: 100%;
+            z-index: 20;
+        }
+        .filters-hidden {
+            transform: translateY(-100%);
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -42,7 +54,7 @@
     <div id="app" class="min-h-screen flex flex-col">
 
         <!-- Header -->
-        <header class="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-30">
+        <header id="main-header" class="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-30">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
                     <!-- Logo/Site Name -->
@@ -72,7 +84,7 @@
         </div>
         
         <!-- Filters Section -->
-        <div class="bg-white border-b border-slate-200 py-4 sticky top-16 z-20">
+        <div id="filters-wrapper" class="bg-white border-b border-slate-200 py-4 sticky top-16 z-20 transition-transform duration-300 ease-in-out">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
                 <!-- Search Bar -->
                 <div class="relative">
@@ -205,16 +217,19 @@
             ];
 
             // --- DOM ELEMENTS ---
+            const mainHeader = document.getElementById('main-header');
             const collectionContent = document.getElementById('collection-content');
             const searchInput = document.getElementById('search-input');
             const categoryFilters = document.getElementById('category-filters');
             const subcategoryFiltersContainer = document.getElementById('subcategory-filters-container');
+            const filtersWrapper = document.getElementById('filters-wrapper');
 
             // --- STATE ---
             let currentCategory = 'all';
             let currentSubcategory = 'all';
             let currentSearchTerm = '';
             let lastFilterState = { category: 'all', subcategory: 'all', searchTerm: '' };
+            let lastScrollTop = 0;
 
             // --- RENDER FUNCTIONS ---
 
@@ -420,6 +435,29 @@
                 }
             });
 
+            // --- Scroll Logic for Filters ---
+            const handleScroll = () => {
+                let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                if (scrollTop > lastScrollTop) {
+                    // Scrolling Down
+                    filtersWrapper.classList.add('filters-hidden');
+                } else {
+                    // Scrolling Up
+                    filtersWrapper.classList.remove('filters-hidden');
+                }
+                lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+            };
+
+            const setupScrollListener = () => {
+                if (window.innerWidth < 768) {
+                    window.addEventListener('scroll', handleScroll, false);
+                } else {
+                    window.removeEventListener('scroll', handleScroll, false);
+                    filtersWrapper.classList.remove('filters-hidden'); // Ensure it's visible on desktop
+                }
+            };
+
             // --- INITIALIZATION ---
             const style = document.createElement('style');
             style.innerHTML = `
@@ -437,6 +475,8 @@
             
             renderCategories();
             renderGrid();
+            setupScrollListener(); // Set up listener on initial load
+            window.addEventListener('resize', setupScrollListener); // Re-check on resize
         });
     </script>
 
