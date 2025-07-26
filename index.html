@@ -439,11 +439,12 @@
             const handleScroll = () => {
                 let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
                 
+                // Add a threshold of 5px to prevent flickering on minor scrolls
                 if (scrollTop > lastScrollTop) {
                     // Scrolling Down
                     filtersWrapper.classList.add('filters-hidden');
-                } else {
-                    // Scrolling Up
+                } else if (lastScrollTop - scrollTop > 5) {
+                    // Scrolling Up (with threshold)
                     filtersWrapper.classList.remove('filters-hidden');
                 }
                 lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
