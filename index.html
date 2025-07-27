@@ -27,13 +27,9 @@
         .not-last\:mb-4:not(:last-child) {
             margin-bottom: 1rem;
         }
-        /* Utility to hide scrollbars */
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .hide-scrollbar {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+        /* Smooth scrolling behavior */
+        html {
+            scroll-behavior: smooth;
         }
     </style>
 </head>
@@ -76,7 +72,7 @@
             </div>
         </div>
 
-        <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <main id="main-content" class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div id="main-view">
                 </div>
         </main>
@@ -229,6 +225,7 @@
             // --- DOM ELEMENTS ---
             const mainView = document.getElementById('main-view');
             const searchInput = document.getElementById('search-input');
+            const mainContent = document.getElementById('main-content');
 
             // --- STATE ---
             let currentCategory = 'all';
@@ -237,6 +234,10 @@
             let currentView = 'showcase'; // 'showcase', 'subcategory_showcase', 'grid', or 'detail'
             
             // --- RENDER FUNCTIONS ---
+
+            function scrollToMainContent() {
+                mainContent.scrollIntoView({ behavior: 'smooth' });
+            }
 
             function renderBreadcrumbs() {
                 let breadcrumbHtml = `<div class="mb-8 flex items-center gap-2 text-sm text-slate-500">`;
@@ -286,6 +287,7 @@
 
                 showcaseHtml += `</div>`;
                 mainView.innerHTML = showcaseHtml;
+                scrollToMainContent();
             }
 
             function renderSubcategoryShowcase(category) {
@@ -318,6 +320,7 @@
 
                 subcategoryHtml += `</div>`;
                 mainView.innerHTML = subcategoryHtml;
+                scrollToMainContent();
             }
 
             function renderGrid() {
@@ -362,6 +365,7 @@
                 }
                 gridHtml += `</div>`;
                 mainView.innerHTML = gridHtml;
+                scrollToMainContent();
             }
 
             function renderDetailView(collectionId) {
@@ -441,6 +445,7 @@
                     </div>
                 `;
                 mainView.innerHTML = detailHtml;
+                scrollToMainContent();
             }
 
 
