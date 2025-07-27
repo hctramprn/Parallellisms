@@ -20,25 +20,14 @@
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
-        /* Style for the active category filter button */
-        .category-btn.active {
-            background-color: #eef2ff; /* indigo-50 */
-            color: #4338ca; /* indigo-700 */
-        }
-        .subcategory-btn.active {
-            font-weight: 600;
-            color: #4338ca; /* indigo-700 */
+        /* Style for active showcase cards */
+        .showcase-card.active {
+            border-color: #4f46e5; /* indigo-600 */
+            box-shadow: 0 0 0 2px #c7d2fe; /* indigo-200 */
         }
         /* Ensure last item in a list doesn't have a bottom margin/border */
         .not-last\:mb-4:not(:last-child) {
             margin-bottom: 1rem;
-        }
-        /* Lateral Menu Transition */
-        #filter-menu {
-            transition: transform 0.3s ease-in-out;
-        }
-        #filter-overlay {
-            transition: opacity 0.3s ease-in-out;
         }
     </style>
 </head>
@@ -76,40 +65,21 @@
             </div>
         </div>
         
-        <!-- Floating Filter Button -->
-        <div class="fixed top-20 right-4 z-40">
-            <button id="filter-fab" class="bg-white/80 backdrop-blur-sm border border-slate-200 shadow-lg rounded-full px-4 py-2 flex items-center gap-2 text-slate-700 font-semibold transition hover:bg-slate-100">
-                <!-- Icon and text will be dynamically updated here -->
-            </button>
-        </div>
-
-        <!-- Lateral Filter Menu -->
-        <div id="filter-overlay" class="fixed inset-0 bg-black/50 z-40 opacity-0 pointer-events-none"></div>
-        <div id="filter-menu" class="fixed top-0 right-0 h-full w-full max-w-sm bg-white z-50 transform translate-x-full shadow-2xl">
-            <div class="p-6 flex flex-col h-full">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-xl font-bold">Filters</h2>
-                    <button id="close-filter-menu" class="p-1 rounded-full hover:bg-slate-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                </div>
+        <!-- Filters Section -->
+        <div id="filters-wrapper" class="bg-white border-b border-slate-200 py-4 sticky top-16 z-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
                 <!-- Search Bar -->
-                <div class="relative mb-4">
+                <div class="relative">
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input id="search-input" type="text" placeholder="Search..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    <input id="search-input" type="text" placeholder="Search for Collections..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
                 </div>
-                <!-- Accordion Filters -->
-                <div id="accordion-filters" class="flex-grow overflow-y-auto">
-                    <!-- Categories and subcategories will be dynamically inserted here -->
-                </div>
-                 <button id="clear-filters-btn" class="mt-4 w-full text-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-full">Clear Filters</button>
             </div>
         </div>
 
         <!-- Main Content Area -->
         <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div id="collection-content">
-                <!-- The grid or the detail view will be rendered here -->
+            <div id="main-view">
+                <!-- The category showcase or the collection grid/detail will be rendered here -->
             </div>
         </main>
 
@@ -221,63 +191,87 @@
             ];
 
             // --- DOM ELEMENTS ---
-            const collectionContent = document.getElementById('collection-content');
+            const mainView = document.getElementById('main-view');
             const searchInput = document.getElementById('search-input');
-            const accordionFilters = document.getElementById('accordion-filters');
-            const filterFab = document.getElementById('filter-fab');
-            const filterMenu = document.getElementById('filter-menu');
-            const filterOverlay = document.getElementById('filter-overlay');
-            const closeFilterMenuBtn = document.getElementById('close-filter-menu');
-            const clearFiltersBtn = document.getElementById('clear-filters-btn');
 
             // --- STATE ---
             let currentCategory = 'all';
             let currentSubcategory = 'all';
             let currentSearchTerm = '';
-            let lastFilterState = { category: 'all', subcategory: 'all', searchTerm: '' };
-
+            let currentView = 'showcase'; // 'showcase', 'subcategory_showcase', 'grid', or 'detail'
+            
             // --- RENDER FUNCTIONS ---
 
-            function renderAccordionFilters() {
-                const categories = [...new Set(collectionsData.map(c => c.category))];
-                let accordionHtml = '';
+            function renderBreadcrumbs() {
+                let breadcrumbHtml = `<div class="mb-8 flex items-center gap-2 text-sm text-slate-500">`;
+                const chevronIcon = `<svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
 
-                categories.forEach(cat => {
-                    const subcategories = [...new Set(collectionsData.filter(c => c.category === cat).map(c => c.subcategory).filter(Boolean))].sort();
-                    const categoryLabel = cat.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    
-                    accordionHtml += `<div class="py-2">
-                        <button class="category-btn w-full text-left flex justify-between items-center p-3 rounded-lg hover:bg-slate-50 ${currentCategory === cat ? 'active' : ''}" data-category="${cat}">
-                            <span class="font-semibold">${categoryLabel}</span>
-                            <svg class="w-5 h-5 transition-transform" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </button>
-                        <div class="subcategory-list pl-4 pt-2 space-y-2 hidden">
-                            <button class="subcategory-btn block w-full text-left p-2 rounded-md hover:bg-slate-100 ${currentSubcategory === 'all' ? 'active' : ''}" data-subcategory="all">All ${categoryLabel}</button>
-                            ${subcategories.map(sub => `<button class="subcategory-btn block w-full text-left p-2 rounded-md hover:bg-slate-100 ${currentSubcategory === sub ? 'active' : ''}" data-subcategory="${sub}">${sub}</button>`).join('')}
-                        </div>
-                    </div>`;
-                });
-                accordionFilters.innerHTML = accordionHtml;
+                breadcrumbHtml += `<button class="breadcrumb-link hover:text-indigo-600 font-medium" data-target="showcase">All Categories</button>`;
+
+                if (currentCategory !== 'all') {
+                    const categoryLabel = currentCategory.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    breadcrumbHtml += `${chevronIcon}<button class="breadcrumb-link hover:text-indigo-600 font-medium" data-target="subcategory_showcase" data-category="${currentCategory}">${categoryLabel}</button>`;
+                }
+                if (currentSubcategory !== 'all') {
+                    breadcrumbHtml += `${chevronIcon}<span class="font-semibold text-slate-800">${currentSubcategory}</span>`;
+                }
+
+                breadcrumbHtml += `</div>`;
+                return breadcrumbHtml;
             }
 
-            function updateFab() {
-                let icon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>`;
-                let text = 'Filters';
-
-                if (currentSearchTerm) {
-                    icon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
-                    text = `"${currentSearchTerm}"`;
-                } else if (currentSubcategory !== 'all') {
-                    text = currentSubcategory;
-                } else if (currentCategory !== 'all') {
-                    text = currentCategory.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                }
+            function renderCategoryShowcase() {
+                currentView = 'showcase';
+                const categories = [...new Set(collectionsData.map(c => c.category))];
+                let showcaseHtml = `<div class="mb-8"><h2 class="text-2xl font-bold text-slate-800">Explore Categories</h2></div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">`;
                 
-                filterFab.innerHTML = `${icon}<span>${text}</span>`;
+                showcaseHtml += `
+                    <div class="category-showcase-card showcase-card bg-white rounded-lg border-2 transition-all cursor-pointer p-6 ${currentCategory === 'all' ? 'active' : 'border-slate-200 hover:border-indigo-400'}" data-category="all">
+                        <h3 class="text-xl font-bold text-slate-900">All Collections</h3>
+                    </div>
+                `;
+
+                categories.forEach(cat => {
+                    const categoryLabel = cat.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    showcaseHtml += `
+                        <div class="category-showcase-card showcase-card bg-white rounded-lg border-2 border-slate-200 transition-all hover:border-indigo-400 cursor-pointer p-6" data-category="${cat}">
+                            <h3 class="text-xl font-bold text-slate-900">${categoryLabel}</h3>
+                        </div>
+                    `;
+                });
+
+                showcaseHtml += `</div>`;
+                mainView.innerHTML = showcaseHtml;
+            }
+
+            function renderSubcategoryShowcase(category) {
+                currentView = 'subcategory_showcase';
+                const subcategories = [...new Set(collectionsData.filter(c => c.category === category).map(c => c.subcategory).filter(Boolean))].sort();
+                
+                let subcategoryHtml = renderBreadcrumbs();
+                subcategoryHtml += `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">`;
+                
+                subcategoryHtml += `
+                    <div class="subcategory-showcase-card showcase-card bg-white rounded-lg border-2 transition-all cursor-pointer p-6 ${currentSubcategory === 'all' ? 'active' : 'border-slate-200 hover:border-indigo-400'}" data-category="${category}" data-subcategory="all">
+                        <h3 class="text-xl font-bold text-slate-900">All ${category.replace(/_/g, ' ')}</h3>
+                    </div>
+                `;
+
+                subcategories.forEach(sub => {
+                     subcategoryHtml += `
+                        <div class="subcategory-showcase-card showcase-card bg-white rounded-lg border-2 border-slate-200 transition-all hover:border-indigo-400 cursor-pointer p-6" data-category="${category}" data-subcategory="${sub}">
+                            <h3 class="text-xl font-bold text-slate-900">${sub}</h3>
+                        </div>
+                    `;
+                });
+
+                subcategoryHtml += `</div>`;
+                mainView.innerHTML = subcategoryHtml;
             }
 
             function renderGrid() {
-                lastFilterState = { category: currentCategory, subcategory: currentSubcategory, searchTerm: currentSearchTerm };
+                currentView = 'grid';
                 
                 let filteredData = collectionsData;
 
@@ -295,8 +289,9 @@
                         c.analogies.some(a => a.a.toLowerCase().includes(lowerCaseSearch) || a.b.toLowerCase().includes(lowerCaseSearch))
                     );
                 }
-
-                let gridHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">`;
+                
+                let gridHtml = renderBreadcrumbs();
+                gridHtml += `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">`;
                 if (filteredData.length > 0) {
                     filteredData.forEach(collection => {
                         gridHtml += `
@@ -316,70 +311,59 @@
                                  </div>`;
                 }
                 gridHtml += `</div>`;
-                collectionContent.innerHTML = gridHtml;
-                updateFab();
+                mainView.innerHTML = gridHtml;
             }
 
             function renderDetailView(collectionId) {
-                // ... (Detail view rendering logic remains the same)
-            }
-            
-            function toggleMenu(show) {
-                if (show) {
-                    filterOverlay.classList.remove('opacity-0', 'pointer-events-none');
-                    filterMenu.classList.remove('translate-x-full');
-                } else {
-                    filterOverlay.classList.add('opacity-0', 'pointer-events-none');
-                    filterMenu.classList.add('translate-x-full');
-                }
+                // ... (Detail view rendering logic would go here)
+                 alert(`Navigating to detail view for ${collectionId}`);
             }
 
             // --- EVENT LISTENERS ---
-            collectionContent.addEventListener('click', function(e) {
-                // ... (Event listener for cards and back button remains the same)
+            mainView.addEventListener('click', function(e) {
+                const collectionCard = e.target.closest('.collection-card');
+                const subcategoryCard = e.target.closest('.subcategory-showcase-card');
+                const categoryCard = e.target.closest('.category-showcase-card');
+                const breadcrumbLink = e.target.closest('.breadcrumb-link');
+
+                if (collectionCard) {
+                    currentView = 'detail';
+                    renderDetailView(collectionCard.dataset.collectionId);
+                } else if (subcategoryCard) {
+                    currentCategory = subcategoryCard.dataset.category;
+                    currentSubcategory = subcategoryCard.dataset.subcategory;
+                    renderGrid();
+                } else if (categoryCard) {
+                    currentCategory = categoryCard.dataset.category;
+                    currentSubcategory = 'all';
+                    if(currentCategory === 'all') {
+                        renderGrid();
+                    } else {
+                        renderSubcategoryShowcase(currentCategory);
+                    }
+                } else if (breadcrumbLink) {
+                    const target = breadcrumbLink.dataset.target;
+                    if (target === 'showcase') {
+                        currentCategory = 'all';
+                        currentSubcategory = 'all';
+                        renderCategoryShowcase();
+                    } else if (target === 'subcategory_showcase') {
+                         currentCategory = breadcrumbLink.dataset.category;
+                         currentSubcategory = 'all';
+                         renderSubcategoryShowcase(currentCategory);
+                    }
+                }
             });
 
             searchInput.addEventListener('input', (e) => {
                 currentSearchTerm = e.target.value;
-                renderGrid();
-            });
-            
-            accordionFilters.addEventListener('click', (e) => {
-                const categoryBtn = e.target.closest('.category-btn');
-                const subcategoryBtn = e.target.closest('.subcategory-btn');
-
-                if (categoryBtn) {
-                    const list = categoryBtn.nextElementSibling;
-                    list.classList.toggle('hidden');
-                    categoryBtn.querySelector('svg').classList.toggle('rotate-180');
-                }
-                
-                if (subcategoryBtn) {
-                    currentCategory = subcategoryBtn.closest('.py-2').querySelector('.category-btn').dataset.category;
-                    currentSubcategory = subcategoryBtn.dataset.subcategory;
-                    renderAccordionFilters();
-                    renderGrid();
-                    toggleMenu(false);
-                }
-            });
-
-            filterFab.addEventListener('click', () => toggleMenu(true));
-            closeFilterMenuBtn.addEventListener('click', () => toggleMenu(false));
-            filterOverlay.addEventListener('click', () => toggleMenu(false));
-            
-            clearFiltersBtn.addEventListener('click', () => {
                 currentCategory = 'all';
                 currentSubcategory = 'all';
-                currentSearchTerm = '';
-                searchInput.value = '';
-                renderAccordionFilters();
                 renderGrid();
-                toggleMenu(false);
             });
-
+            
             // --- INITIALIZATION ---
-            renderAccordionFilters();
-            renderGrid();
+            renderCategoryShowcase(); // Start with the category showcase view
         });
     </script>
 
