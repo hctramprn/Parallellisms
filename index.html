@@ -27,13 +27,17 @@
         .not-last\:mb-4:not(:last-child) {
             margin-bottom: 1rem;
         }
+        /* Smooth scrolling behavior */
+        html {
+            scroll-behavior: smooth;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
 
     <div id="app" class="min-h-screen flex flex-col">
 
-        <header id="main-header" class="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-30">
+        <header class="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-30">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center space-x-3">
@@ -222,8 +226,6 @@
             const mainView = document.getElementById('main-view');
             const searchInput = document.getElementById('search-input');
             const mainContent = document.getElementById('main-content');
-            const header = document.getElementById('main-header');
-            const filtersWrapper = document.getElementById('filters-wrapper');
 
             // --- STATE ---
             let currentCategory = 'all';
@@ -234,8 +236,8 @@
             // --- RENDER FUNCTIONS ---
             
             function scrollToMainContent() {
-                const headerHeight = header.offsetHeight;
-                const filtersHeight = filtersWrapper.offsetHeight;
+                const headerHeight = document.getElementById('main-header').offsetHeight;
+                const filtersHeight = document.getElementById('filters-wrapper').offsetHeight;
                 const targetPosition = mainContent.offsetTop - headerHeight - filtersHeight - 20; // 20px for extra padding
                 
                 window.scrollTo({
@@ -246,16 +248,17 @@
 
             function renderBreadcrumbs() {
                 let breadcrumbHtml = `<div class="mb-8 flex items-center gap-2 text-sm text-slate-500">`;
-                const chevronIcon = `<svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+                const chevronIcon = `<svg class="h-5 w-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
 
-                breadcrumbHtml += `<button class="breadcrumb-link hover:text-indigo-600 font-medium" data-target="showcase">Home</button>`;
+                breadcrumbHtml += `<button class="breadcrumb-link hover:text-indigo-600 font-medium flex items-center gap-1" data-target="showcase"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Home</button>`;
 
                 if (currentCategory !== 'all') {
                     const categoryLabel = currentCategory.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    breadcrumbHtml += `${chevronIcon}<button class="breadcrumb-link hover:text-indigo-600 font-medium" data-target="subcategory_showcase" data-category="${currentCategory}">${categoryLabel}</button>`;
+                    const icon = categoryIcons[currentCategory] || '';
+                    breadcrumbHtml += `${chevronIcon}<button class="breadcrumb-link hover:text-indigo-600 font-medium flex items-center gap-1" data-target="subcategory_showcase" data-category="${currentCategory}">${icon.replace('width="24"','width="16"').replace('height="24"','height="16"')} ${categoryLabel}</button>`;
                 }
                 if (currentSubcategory !== 'all') {
-                    breadcrumbHtml += `${chevronIcon}<span class="font-semibold text-slate-800">${currentSubcategory}</span>`;
+                    breadcrumbHtml += `${chevronIcon}<span class="font-semibold text-slate-800 flex items-center gap-1">${subcategoryIcons[currentSubcategory] || ''} ${currentSubcategory}</span>`;
                 }
 
                 breadcrumbHtml += `</div>`;
